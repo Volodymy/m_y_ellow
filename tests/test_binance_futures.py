@@ -27,3 +27,11 @@ def test_tp_sl_for_long_and_short():
     assert (float(tp), float(sl)) == (4120.0, 3880.0)  # ±3% ціни = ±30% маржі при x10
     tp, sl = tp_sl_prices(4000, -1, 10, 0.30, 0.30, "0.01")
     assert (float(tp), float(sl)) == (3880.0, 4120.0)
+
+
+def test_no_real_binance_endpoint():
+    import pytest
+    from office.binance_futures import ENDPOINTS, FuturesTestnet
+    assert all("fapi.binance.com" != u.split("//")[1] for u in ENDPOINTS.values())
+    with pytest.raises(ValueError):
+        FuturesTestnet(env="live")

@@ -1,10 +1,11 @@
-"""Клієнт Binance USDⓈ-M Futures — ТІЛЬКИ ТЕСТОВА МЕРЕЖА.
+"""Клієнт Binance USDⓈ-M Futures — ТІЛЬКИ ТЕСТОВА МЕРЕЖА АБО DEMO TRADING.
 
 Адреса жорстко прописана на testnet.binancefuture.com: реальних грошей цей
 модуль не торкається. Ключі читаються з файлу .env (він у .gitignore):
 
     BINANCE_TESTNET_API_KEY=...
     BINANCE_TESTNET_API_SECRET=...
+    BINANCE_ENV=demo        # demo (demo.binance.com) або testnet (testnet.binancefuture.com)
 """
 from __future__ import annotations
 
@@ -19,6 +20,9 @@ from urllib.parse import urlencode
 import requests
 
 TESTNET_URL = "https://testnet.binancefuture.com"
+DEMO_URL = "https://demo-fapi.binance.com"   # Binance Demo Trading (demo.binance.com), віртуальні гроші
+# Лише навчальні середовища. Адреси реального Binance (fapi.binance.com) тут свідомо немає.
+ENDPOINTS = {"testnet": TESTNET_URL, "demo": DEMO_URL}
 
 
 class BinanceError(RuntimeError):
@@ -50,11 +54,15 @@ def round_step(value: float, step: str) -> str:
 
 
 class FuturesTestnet:
-    def __init__(self, api_key: str | None = None, api_secret: str | None = None, session=None):
+    def __init__(self, api_key: str | None = None, api_secret: str | None = None, session=None,
+                 env: str | None = None):
         load_env()
+        env = env or os.environ.get("BINANCE_ENV", "testnet")
+        if env not in ENDPOINTS:
+            raise ValueError(f"Невідоме середовище {env!r}: дозволено лише {list(ENDPOINTS)}")
         self.key = api_key or os.environ.get("BINANCE_TESTNET_API_KEY", "")
         self.secret = api_secret or os.environ.get("BINANCE_TESTNET_API_SECRET", "")
-        self.base = TESTNET_URL
+        self.base = ENDPOINTS[env]
         self.s = session or requests.Session()
         self.time_offset = 0
         self._filters: dict[str, dict] = {}
