@@ -23,24 +23,29 @@ CACHE_DIR = Path("data/cache")
 INTERVAL_MS = {"1m": 60_000, "5m": 300_000, "15m": 900_000, "1h": 3_600_000, "4h": 14_400_000}
 
 
-def load_ohlc(symbol: str, interval: str = "15m", days: int = 365) -> pd.DataFrame:
-    """Свічки зі спотового ринку Binance (ціни perp-ф'ючерсів дуже близькі до споту)."""
+FUTURES_ONLY = {"XAUUSDT", "XAGUSDT"}  # золото й срібло є лише як perp-ф'ючерси
+
+
+def load_ohlc(symbol: str, interval: str = "15m", days: int = 365, market: str | None = None) -> pd.DataFrame:
+    """Свічки Binance: spot (data-api.binance.vision) або USDⓈ-M futures (fapi.binance.com)."""
+    market = market or ("futures" if symbol in FUTURES_ONLY else "spot")
+    url, limit = (("https://fapi.binance.com/fapi/v1/klines", 1500) if market == "futures"
+                  else ("https://data-api.binance.vision/api/v3/klines", 1000))
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / f"{symbol}_{interval}_{days}d.csv"
+    path = CACHE_DIR / f"{symbol}_{market}_{interval}_{days}d.csv"
     if path.exists() and time.time() - path.stat().st_mtime < 6 * 3600:
         return pd.read_csv(path, index_col=0, parse_dates=True)
     start = int((time.time() - days * 86400) * 1000)
     rows = []
     while True:
-        r = requests.get("https://data-api.binance.vision/api/v3/klines",
-                         params={"symbol": symbol, "interval": interval, "startTime": start, "limit": 1000},
+        r = requests.get(url, params={"symbol": symbol, "interval": interval, "startTime": start, "limit": limit},
                          headers={"User-Agent": USER_AGENT}, timeout=30)
         r.raise_for_status()
         batch = r.json()
         if not batch:
             break
         rows += batch
-        if len(batch) < 1000:
+        if len(batch) < limit:
             break
         start = batch[-1][0] + INTERVAL_MS[interval]
     df = pd.DataFrame([[float(x) for x in row[1:5]] for row in rows],
@@ -172,3 +177,25 @@ def random_signals(n: int, count: int, seed: int) -> np.ndarray:
     idx = rng.choice(np.arange(n - 1), size=min(count, n - 1), replace=False)
     s[idx] = rng.choice([-1, 1], size=len(idx))
     return s
+
+
+def load_ohlc_yahoo(ticker: str = "GC=F", interval: str = "1h", range_: str = "730d") -> pd.DataFrame:
+    """Внутрішньоденні свічки з Yahoo Finance (GC=F — золотий ф'ючерс COMEX).
+
+    Ліміти Yahoo: 1h — до 730 днів, 15m — до 60 днів.
+    Використовуємо як замінник XAUUSDT, коли API Binance Futures недоступний (гео-блок).
+    """
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = CACHE_DIR / f"yahoo_{ticker.replace('=', '_')}_{interval}_{range_}.csv"
+    if path.exists() and time.time() - path.stat().st_mtime < 6 * 3600:
+        return pd.read_csv(path, index_col=0, parse_dates=True)
+    r = requests.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}",
+                     params={"interval": interval, "range": range_},
+                     headers={"User-Agent": USER_AGENT}, timeout=30)
+    r.raise_for_status()
+    res = r.json()["chart"]["result"][0]
+    q = res["indicators"]["quote"][0]
+    df = pd.DataFrame({k: q[k] for k in ("open", "high", "low", "close")},
+                      index=pd.to_datetime(res["timestamp"], unit="s")).dropna()
+    df.to_csv(path)
+    return df
