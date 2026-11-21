@@ -97,6 +97,28 @@ def cmd_fetch_13f(cfg, args):
         print(f"\nБез тікера ({len(unmapped)}): додайте CUSIP у office/edgar.py → CUSIP_TO_TICKER")
 
 
+def cmd_scalp(cfg, args):
+    from .scalp_report import format_table, run
+    sc = cfg.get("scalper", {})
+    table = run(
+        symbols=args.symbols or sc.get("symbols", ["BTCUSDT", "ETHUSDT", "SOLUSDT"]),
+        interval=args.interval or sc.get("interval", "15m"),
+        days=args.days or sc.get("days", 365),
+        mode=args.mode or sc.get("mode", "any"),
+        leverages=sc.get("leverages", [5, 10, 20, 50]),
+        targets=sc.get("take_profit_margin", [0.05, 0.10]),
+        stop_ratio=sc.get("stop_to_target_ratio", 1.0),
+        synthetic=args.synthetic,
+    )
+    print("Високоризиковий бектест (ф'ючерси з плечем, ізольована маржа). Паперовий режим.")
+    print("'треба для 0' — частка виграшних угод, потрібна, щоб вийти в нуль після комісій.")
+    print("'дохід випадк.' — медіана 20 прогонів із ВИПАДКОВИМИ входами за тими самими правилами.\n")
+    print(format_table(table))
+    Path("reports").mkdir(exist_ok=True)
+    table.to_csv("reports/scalp_grid.csv", index=False)
+    print("\nПовна таблиця: reports/scalp_grid.csv")
+
+
 def main():
     p = argparse.ArgumentParser(prog="office", description="Офіс AI-асистентів для паперової торгівлі")
     p.add_argument("--config", default="config/settings.yaml")
@@ -106,12 +128,18 @@ def main():
         sp.add_argument("--synthetic", action="store_true", help="синтетичні дані без інтернету")
     sub.add_parser("status")
     sub.add_parser("reset")
+    sc = sub.add_parser("scalp", help="фігури + Фібоначчі, коротка угода з плечем")
+    sc.add_argument("--synthetic", action="store_true")
+    sc.add_argument("--symbols", nargs="*")
+    sc.add_argument("--interval", choices=["5m", "15m", "1h", "4h"])
+    sc.add_argument("--days", type=int)
+    sc.add_argument("--mode", choices=["fib", "pattern", "any", "both"])
     f = sub.add_parser("fetch-13f")
     f.add_argument("fund", help="ключ фонду з config/superinvestors.yaml")
     args = p.parse_args()
     cfg = load_cfg(args.config)
     {"backtest": cmd_backtest, "run": cmd_run, "status": cmd_status,
-     "reset": cmd_reset, "fetch-13f": cmd_fetch_13f}[args.cmd](cfg, args)
+     "reset": cmd_reset, "fetch-13f": cmd_fetch_13f, "scalp": cmd_scalp}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":

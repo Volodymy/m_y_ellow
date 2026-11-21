@@ -47,3 +47,13 @@ backtest:
 reporter:
   llm_commentary: false   # true — коментар від Claude (потрібен ANTHROPIC_API_KEY). LLM не приймає торгових рішень.
   telegram: false         # true — надсилати звіт у Telegram (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+
+# Високоризиковий модуль: фігури + Фібоначчі, коротка угода з плечем, тільки бектест/папір.
+scalper:
+  symbols: [BTCUSDT, ETHUSDT, SOLUSDT]
+  interval: 15m
+  days: 365
+  mode: any                    # fib | pattern | any (будь-який агент) | both (обидва разом)
+  leverages: [5, 10, 20, 50]
+  take_profit_margin: [0.05, 0.10]   # закриття при +5% / +10% від маржі
+  stop_to_target_ratio: 1.0          # стоп = ціль (−5% / −10% від маржі)
