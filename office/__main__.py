@@ -119,6 +119,27 @@ def cmd_scalp(cfg, args):
     print("\nПовна таблиця: reports/scalp_grid.csv")
 
 
+def cmd_testnet(cfg, args):
+    from .testnet_bot import config_from, reset_halt, run_loop, run_once
+    bot_cfg = config_from(cfg)
+    if args.reset_halt:
+        reset_halt()
+        print("Аварійну зупинку скинуто.")
+        return
+    if args.check:
+        from .binance_futures import FuturesTestnet
+        c = FuturesTestnet()
+        c.sync_time()
+        print(f"Підключено до тестової мережі. Баланс: {c.wallet_usdt():,.2f} USDT")
+        print(f"Ціна {bot_cfg.symbol}: {c.mark_price(bot_cfg.symbol)}; фільтри: {c.filters(bot_cfg.symbol)}")
+        return
+    if args.loop:
+        run_loop(bot_cfg)
+    else:
+        for line in run_once(bot_cfg):
+            print(line)
+
+
 def main():
     p = argparse.ArgumentParser(prog="office", description="Офіс AI-асистентів для паперової торгівлі")
     p.add_argument("--config", default="config/settings.yaml")
@@ -134,12 +155,17 @@ def main():
     sc.add_argument("--interval", choices=["5m", "15m", "1h", "4h"])
     sc.add_argument("--days", type=int)
     sc.add_argument("--mode", choices=["fib", "pattern", "any", "both"])
+    tn = sub.add_parser("testnet", help="бот на тестовій мережі Binance Futures")
+    tn.add_argument("--check", action="store_true", help="перевірити ключі й баланс")
+    tn.add_argument("--once", action="store_true", help="один цикл (за замовчуванням)")
+    tn.add_argument("--loop", action="store_true", help="працювати щогодини")
+    tn.add_argument("--reset-halt", action="store_true")
     f = sub.add_parser("fetch-13f")
     f.add_argument("fund", help="ключ фонду з config/superinvestors.yaml")
     args = p.parse_args()
     cfg = load_cfg(args.config)
     {"backtest": cmd_backtest, "run": cmd_run, "status": cmd_status,
-     "reset": cmd_reset, "fetch-13f": cmd_fetch_13f, "scalp": cmd_scalp}[args.cmd](cfg, args)
+     "reset": cmd_reset, "fetch-13f": cmd_fetch_13f, "scalp": cmd_scalp, "testnet": cmd_testnet}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":
