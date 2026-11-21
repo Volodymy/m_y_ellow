@@ -1,0 +1,49 @@
+# Налаштування офісу AI-асистентів (паперова торгівля).
+# Усі частки — від 0 до 1.
+
+mode: paper            # paper — віртуальні гроші. Реальної торгівлі в коді немає.
+base_currency: USD
+starting_capital: 10000
+
+# Як капітал ділиться між стратегіями ("рукавами").
+allocation:
+  crypto_trend: 0.30        # трендова стратегія на крипті (стиль CTA / Turtle)
+  etf_dual_momentum: 0.30   # ротація ETF за моментумом (Antonacci)
+  superinvestor_clone: 0.40 # копія портфелів фондів зі звітів 13F
+
+strategies:
+  crypto_trend:
+    universe: [BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT]
+    entry_lookback: 55      # пробій 55-денного максимуму → вхід
+    exit_lookback: 20       # пробій 20-денного мінімуму → вихід
+    vol_lookback: 20
+    target_vol: 0.40        # цільова річна волатильність на актив
+  etf_dual_momentum:
+    risky: [SPY, QQQ, EFA, EEM, GLD, TLT]
+    safe: SHY               # куди йдемо, коли ринок падає
+    lookback_days: 365      # 12 місяців (календарні дні)
+    top_n: 2
+  superinvestor_clone:
+    holdings_file: config/superinvestors.yaml
+    funds: [berkshire_hathaway, superinvestor_consensus]
+    top_n: 10
+
+risk:
+  max_position_weight: 0.15   # не більше 15% капіталу в одному активі
+  max_gross_exposure: 1.0     # без плеча
+  cash_buffer: 0.02           # 2% завжди в кеші
+  max_drawdown_kill: 0.25     # просадка 25% від піку → усе в кеш, потрібне ручне скидання
+  rebalance_threshold: 0.02   # торгуємо, лише якщо вага відхилилась більш ніж на 2%
+  min_trade_value: 10
+
+costs:
+  crypto: {fee: 0.001, slippage: 0.0005}   # 0.1% комісія біржі
+  stock:  {fee: 0.0,   slippage: 0.0005}
+
+backtest:
+  start: "2019-01-01"
+  out_of_sample_fraction: 0.30   # останні 30% періоду — перевірка на "невидимих" даних
+
+reporter:
+  llm_commentary: false   # true — коментар від Claude (потрібен ANTHROPIC_API_KEY). LLM не приймає торгових рішень.
+  telegram: false         # true — надсилати звіт у Telegram (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)

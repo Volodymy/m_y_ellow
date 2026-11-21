@@ -1,0 +1,39 @@
+# Портфелі реальних інвесторів зі звітів SEC 13F.
+#
+# ВАЖЛИВО:
+# - 13F подається із затримкою до 45 днів після кінця кварталу і показує лише
+#   довгі позиції в акціях США (без кешу, шортів, іноземних акцій).
+# - Ваги нижче — знімок із відкритих оглядів. Точні цифри оновлюються командою
+#   `python -m office fetch-13f` напряму з SEC EDGAR.
+# - weight: null означає, що позиція є в топі, але точну вагу треба уточнити;
+#   такі позиції пропускаються, доки їх не оновить fetch-13f.
+
+berkshire_hathaway:
+  manager: "Berkshire Hathaway (Greg Abel / Warren Buffett)"
+  cik: "0001067983"
+  as_of: "2026-09-30"
+  filed: "2026-11-16"
+  source:
+    - https://www.kiplinger.com/investing/stocks/stocks-berkshire-hathaway-bought-sold-q3-2026
+    - https://acquirersmultiple.com/2026/05/greg-abels-berkshire-hathaway-portfolio-biggest-buys-sells-and-top-holdings-revealed/
+  holdings:        # % від портфеля 13F
+    AAPL: 25.0
+    AXP: 15.2
+    CVX: 5.66
+    OXY: 4.82
+    MCO: 3.68
+    CB: 3.66
+    GOOG: 3.05
+    KO: null       # у топ-5, вагу уточнити через EDGAR
+    BAC: null      # у топ-5 після скорочення, вагу уточнити через EDGAR
+
+superinvestor_consensus:
+  manager: "Найпопулярніші акції серед ~80 суперінвесторів (Dataroma)"
+  as_of: "2026-02-17"
+  source:
+    - https://dataroma.com/
+  weighting: holders   # вага пропорційна кількості фондів, що тримають акцію
+  holdings:            # кількість суперінвесторів, які тримають акцію
+    MSFT: 35
+    GOOGL: 30
+    AMZN: 29
