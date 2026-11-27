@@ -5,3 +5,4 @@ data/cache/
 data/*.json
 reports/
 .env
+trader/
